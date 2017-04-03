@@ -14,6 +14,7 @@ class TestIO(unittest.TestCase):
         self.df = read_file(nybb_zip_path, vfs=vfs)
         with fiona.open(nybb_zip_path, vfs=vfs) as f:
             self.crs = f.crs
+            self.columns = list(f.meta["schema"]["properties"].keys())
 
     def test_read_postgis_default(self):
         con = connect('test_geopandas')
@@ -54,3 +55,18 @@ class TestIO(unittest.TestCase):
         df = self.df.rename(columns=lambda x: x.lower())
         validate_boro_df(self, df)
         self.assert_(df.crs == self.crs)
+        # get lower case columns, and exclude geometry column from comparison
+        lower_columns = [c.lower() for c in self.columns]
+        self.assert_((df.columns[:-1] == lower_columns).all())
+
+    def test_filtered_read_file(self):
+        full_df_shape = self.df.shape
+        nybb_filename, nybb_zip_path = download_nybb()
+        vfs = 'zip://' + nybb_filename
+        bbox = (1031051.7879884212, 224272.49231459625, 1047224.3104931959, 244317.30894023244)
+        filtered_df = read_file(nybb_zip_path, vfs=vfs, bbox=bbox)
+        filtered_df_shape = filtered_df.shape
+        assert(full_df_shape != filtered_df_shape)
+        assert(filtered_df_shape == (2, 5))
+
+

@@ -1,9 +1,12 @@
+import sys
+
 from shapely.geometry import Polygon, Point
 
 from geopandas import GeoSeries, GeoDataFrame, base, read_file
 from geopandas.tests.util import unittest, download_nybb
 
 
+@unittest.skipIf(sys.platform.startswith("win"), "fails on AppVeyor")
 @unittest.skipIf(not base.HAS_SINDEX, 'Rtree absent, skipping')
 class TestSeriesSindex(unittest.TestCase):
 
@@ -20,6 +23,10 @@ class TestSeriesSindex(unittest.TestCase):
 
     def test_empty_point(self):
         s = GeoSeries([Point()])
+        self.assertTrue(s.sindex is None)
+        self.assertTrue(s._sindex_generated)
+
+    def test_empty_geo_series(self):
         self.assert_(GeoSeries().sindex is None)
 
     def test_polygons(self):
@@ -46,6 +53,7 @@ class TestSeriesSindex(unittest.TestCase):
         self.assert_(s._sindex is not None)
 
 
+@unittest.skipIf(sys.platform.startswith("win"), "fails on AppVeyor")
 @unittest.skipIf(not base.HAS_SINDEX, 'Rtree absent, skipping')
 class TestFrameSindex(unittest.TestCase):
     def setUp(self):
@@ -71,7 +79,7 @@ class TestFrameSindex(unittest.TestCase):
         self.df.set_geometry(
             [Point(x, y) for x, y in zip(range(5, 10), range(5, 10))],
             inplace=True)
-        self.assert_(self.df._sindex_valid == False)
+        self.assertFalse(self.df._sindex_generated)
 
 
 # Skip to accommodate Shapely geometries being unhashable
